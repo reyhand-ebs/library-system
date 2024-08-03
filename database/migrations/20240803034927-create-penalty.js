@@ -3,6 +3,12 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("Penalties", {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+      },
       MemberId: {
         type: Sequelize.STRING,
         allowNull: false,
@@ -15,7 +21,7 @@ module.exports = {
       },
       endDate: {
         type: Sequelize.DATE,
-        allowNull: false
+        allowNull: false,
       },
     });
   },

@@ -16,6 +16,9 @@ npm install
 ### 5. Run database migrations:
 npx sequelize-cli db:migrate
 
+### 6. Run database seeders:
+npx sequelize-cli db:seed:all
+
 ## Usage
 - ### Start the server in development mode:
 npm run start

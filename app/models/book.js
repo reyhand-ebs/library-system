@@ -25,8 +25,10 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "Book",
       timestamps: false,
+      autoIncrement: false,
     }
   );
 
+  Book.removeAttribute("id");
   return Book;
 };

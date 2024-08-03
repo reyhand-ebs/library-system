@@ -1,4 +1,5 @@
-const memberService = require("../services/memberService");
+const MemberService = require("../services/memberService");
+const memberService = new MemberService();
 
 class MemberController {
   // Retrieve all members

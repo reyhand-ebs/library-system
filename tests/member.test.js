@@ -1,92 +1,127 @@
-const request = require("supertest");
-const app = require("../index");
-const { sequelize, MemberBook } = require("../app/models");
+const memberRepository = require("../app/repositories/memberRepository");
+const bookRepository = require("../app/repositories/bookRepository");
+const { MemberBook, Penalty } = require("../app/models");
+const MemberService = require("../app/services/memberService");
 
-beforeAll(async () => {
-  await sequelize.sync({ alter: true });
-});
+jest.mock("../app/repositories/memberRepository");
+jest.mock("../app/repositories/bookRepository");
+jest.mock("../app/models");
 
-afterAll(async () => {
-  await sequelize.close();
-});
+describe("MemberService", () => {
+  let memberService;
 
-describe("Member Endpoints", () => {
-  it("should fetch all members", async () => {
-    const res = await request(app).get("/members");
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty("length");
+  beforeEach(() => {
+    memberService = new MemberService();
   });
 
-  it("should borrow a book", async () => {
-    const memberId = "M001";
-    const bookId = "SHR-1";
-    const res = await request(app).post(
-      `/members/${memberId}/borrow/${bookId}`
-    );
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty("message", "Book borrowed successfully");
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it("should not borrow more than 2 books", async () => {
-    const memberId = "M002";
-    const bookIds = ["TW-11", "HOB-83", "NRN-7"];
+  test("should borrow a book", async () => {
+    const member = { id: "M001", getBooks: jest.fn().mockResolvedValue([]) };
+    const book = { id: "SHR-1", stock: 1, save: jest.fn() };
+    memberRepository.findById.mockResolvedValue(member);
+    bookRepository.findById.mockResolvedValue(book);
+    member.addBook = jest.fn();
 
-    for (let i = 0; i < bookIds.length; i++) {
-      const res = await request(app).post(
-        `/members/${memberId}/borrow/${bookIds[i]}`
-      );
-      if (i < 2) {
-        expect(res.statusCode).toEqual(200);
-        expect(res.body).toHaveProperty(
-          "message",
-          "Book borrowed successfully"
-        );
-      } else {
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toHaveProperty(
-          "error",
-          "Member cannot borrow more than 2 books"
-        );
-      }
-    }
+    const result = await memberService.borrowBook("M001", "SHR-1");
+
+    expect(result).toBe("Book borrowed successfully");
+    expect(member.addBook).toHaveBeenCalledWith(book);
+    expect(book.stock).toBe(0);
+    expect(book.save).toHaveBeenCalled();
   });
 
-  it("should return a book", async () => {
-    const memberId = "M001";
-    const bookId = "SHR-1";
-    const res = await request(app).post(
-      `/members/${memberId}/return/${bookId}`
-    );
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty("message", "Book returned successfully");
+  test("should return a book", async () => {
+    const member = {
+      id: "M001",
+      getBooks: jest.fn().mockResolvedValue([{ id: "SHR-1" }]),
+      removeBook: jest.fn(),
+    };
+    const book = { id: "SHR-1", stock: 0, save: jest.fn() };
+    const memberBook = {
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    };
+    memberRepository.findById.mockResolvedValue(member);
+    bookRepository.findById.mockResolvedValue(book);
+    MemberBook.findOne.mockResolvedValue(memberBook);
+
+    const result = await memberService.returnBook("M001", "SHR-1");
+
+    expect(result).toBe("Book returned successfully");
+    expect(member.removeBook).toHaveBeenCalledWith(book);
+    expect(book.stock).toBe(1);
+    expect(book.save).toHaveBeenCalled();
   });
 
-  it("should handle late return without penalty", async () => {
-    const memberId = "M001";
-    const bookId = "TW-11";
+  test("should not allow member to borrow more than 2 books", async () => {
+    const member = {
+      id: "M001",
+      getBooks: jest.fn().mockResolvedValue([{ id: "JK-45" }, { id: "SHR-1" }]),
+    };
+    const book = { id: "B003", stock: 1, save: jest.fn() };
+    memberRepository.findById.mockResolvedValue(member);
+    bookRepository.findById.mockResolvedValue(book);
 
-    // Simulate borrowing a book
-    const resBorrow = await request(app).post(
-      `/members/${memberId}/borrow/${bookId}`
-    );
-    expect(resBorrow.statusCode).toEqual(200);
-    expect(resBorrow.body).toHaveProperty(
-      "message",
-      "Book borrowed successfully"
+    await expect(memberService.borrowBook("M001", "TW-11")).rejects.toThrow(
+      "Member cannot borrow more than 2 books"
     );
 
-    // Simulate late return by manipulating the borrow date
-    const memberBook = await MemberBook.findOne({
-      where: { MemberId: memberId, BookId: bookId },
+    expect(member.getBooks).toHaveBeenCalled();
+    expect(bookRepository.findById).toHaveBeenCalledWith("TW-11");
+    expect(memberRepository.findById).toHaveBeenCalledWith("M001");
+  });
+
+  test("should handle late return with penalty", async () => {
+    const member = {
+      id: "M001",
+      getBooks: jest.fn().mockResolvedValue([{ id: "NRN-7" }]),
+      removeBook: jest.fn(),
+    };
+    const book = { id: "NRN-7", stock: 0, save: jest.fn() };
+    const memberBook = {
+      createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+    };
+    memberRepository.findById.mockResolvedValue(member);
+    bookRepository.findById.mockResolvedValue(book);
+
+    MemberBook.findOne.mockResolvedValue(memberBook);
+    Penalty.create.mockResolvedValue({});
+
+    const result = await memberService.returnBook("M001", "NRN-7");
+
+    expect(result).toBe("Book returned successfully");
+    expect(member.removeBook).toHaveBeenCalledWith(book);
+    expect(book.stock).toBe(1);
+    expect(book.save).toHaveBeenCalled();
+    expect(Penalty.create).toHaveBeenCalledWith({
+      MemberId: "M001",
+      endDate: expect.any(Date),
     });
+  });
 
-    memberBook.createdAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
-    await memberBook.save();
+  test("should handle return without penalty", async () => {
+    const member = {
+      id: "M001",
+      getBooks: jest.fn().mockResolvedValue([{ id: "NRN-7" }]),
+      removeBook: jest.fn(),
+    };
+    const book = { id: "NRN-7", stock: 0, save: jest.fn() };
+    const memberBook = {
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    };
+    memberRepository.findById.mockResolvedValue(member);
+    bookRepository.findById.mockResolvedValue(book);
 
-    const res = await request(app).post(
-      `/members/${memberId}/return/${bookId}`
-    );
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty("message", "Book returned successfully");
+    MemberBook.findOne.mockResolvedValue(memberBook);
+
+    const result = await memberService.returnBook("M001", "NRN-7");
+
+    expect(result).toBe("Book returned successfully");
+    expect(member.removeBook).toHaveBeenCalledWith(book);
+    expect(book.stock).toBe(1);
+    expect(book.save).toHaveBeenCalled();
+    expect(Penalty.create).not.toHaveBeenCalled();
   });
 });

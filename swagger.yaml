@@ -19,15 +19,15 @@ paths:
             type: "array"
             items:
               $ref: "#/definitions/Member"
-  /members/{id}:
+  /members/{code}:
     get:
-      summary: "Get a member by ID"
+      summary: "Get a member by code"
       description: "Returns a single member"
       parameters:
-        - name: "id"
+        - name: "code"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
       responses:
         200:
           description: "A single member"
@@ -50,10 +50,10 @@ paths:
       summary: "Update a member"
       description: "Updates an existing member"
       parameters:
-        - name: "id"
+        - name: "code"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
         - in: "body"
           name: "body"
           description: "Member object that needs to be updated"
@@ -67,10 +67,10 @@ paths:
       summary: "Delete a member"
       description: "Deletes an existing member"
       parameters:
-        - name: "id"
+        - name: "code"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
       responses:
         200:
           description: "Member deleted"
@@ -82,11 +82,11 @@ paths:
         - name: "memberId"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
         - name: "bookId"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
       responses:
         200:
           description: "Book borrowed"
@@ -98,11 +98,11 @@ paths:
         - name: "memberId"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
         - name: "bookId"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
       responses:
         200:
           description: "Book returned"
@@ -117,15 +117,15 @@ paths:
             type: "array"
             items:
               $ref: "#/definitions/Book"
-  /books/{id}:
+  /books/{code}:
     get:
-      summary: "Get a book by ID"
+      summary: "Get a book by code"
       description: "Returns a single book"
       parameters:
-        - name: "id"
+        - name: "code"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
       responses:
         200:
           description: "A single book"
@@ -148,10 +148,10 @@ paths:
       summary: "Update a book"
       description: "Updates an existing book"
       parameters:
-        - name: "id"
+        - name: "code"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
         - in: "body"
           name: "body"
           description: "Book object that needs to be updated"
@@ -165,10 +165,10 @@ paths:
       summary: "Delete a book"
       description: "Deletes an existing book"
       parameters:
-        - name: "id"
+        - name: "code"
           in: "path"
           required: true
-          type: "integer"
+          type: "string"
       responses:
         200:
           description: "Book deleted"

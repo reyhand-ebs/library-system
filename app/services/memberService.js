@@ -7,8 +7,8 @@ class MemberService {
     return await memberRepository.findAll();
   }
 
-  async getMemberById(id) {
-    const book = await memberRepository.findById(id);
+  async getMemberById(code) {
+    const book = await memberRepository.findById(code);
     if (!book) {
       throw new Error("Member not found");
     }
@@ -19,16 +19,16 @@ class MemberService {
     return await memberRepository.create(memberData);
   }
 
-  async updateMember(id, memberData) {
-    const book = await memberRepository.update(id, memberData);
+  async updateMember(code, memberData) {
+    const book = await memberRepository.update(code, memberData);
     if (!book) {
       throw new Error("Member not found");
     }
     return book;
   }
 
-  async deleteMember(id) {
-    const book = await memberRepository.delete(id);
+  async deleteMember(code) {
+    const book = await memberRepository.delete(code);
     if (!book) {
       throw new Error("Member not found");
     }
@@ -109,4 +109,4 @@ class MemberService {
   }
 }
 
-module.exports = new MemberService();
+module.exports = MemberService;

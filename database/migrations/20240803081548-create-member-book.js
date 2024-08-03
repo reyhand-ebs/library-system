@@ -1,9 +1,14 @@
-"use strict";
-
+'use strict';
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("MemberBooks", {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+      },
       MemberId: {
         type: Sequelize.STRING,
         references: {
@@ -30,12 +35,10 @@ module.exports = {
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW,
       },
     });
   },
-
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("MemberBooks");
-  },
+    await queryInterface.dropTable('MemberBooks');
+  }
 };
