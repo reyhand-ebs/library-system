@@ -1,4 +1,5 @@
-const bookService = require("../services/bookService");
+const BookService = require("../services/bookService");
+const bookService = new BookService();
 
 class BookController {
   // Retrieve all books
